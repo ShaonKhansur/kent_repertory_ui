@@ -1,0 +1,38 @@
+<div class="rubric-list-container">
+  <!-- Section Subtitle / Matches Counter -->
+  <div class="list-meta-bar">
+    <span class="meta-title">Found Rubrics</span>
+    <span class="count-badge">{{ rubrics().length }} matches</span>
+  </div>
+
+  <!-- Content State -->
+  <div class="list-scroll-area">
+    @if (isSearching()) {
+      <div class="state-container loading-state">
+        <span class="app-spinner-large"></span>
+        <p class="state-message">Searching Kent's Repertory via local vector embeddings...</p>
+        <span class="state-sub">Querying 78,926 rubrics in SQLite</span>
+      </div>
+    } @else if (rubrics().length === 0) {
+      <div class="state-container empty-state">
+        <div class="empty-icon">📖</div>
+        <p class="state-message">No rubrics found for this symptom & chapter.</p>
+        <p class="empty-tip">
+          Try typing common Kent terms like "anxiety night", "headache sun", or change the chapter
+          filter.
+        </p>
+      </div>
+    } @else {
+      <div class="cards-stack">
+        @for (rubric of rubrics(); track rubric.id) {
+          <app-rubric-card
+            [rubric]="rubric"
+            [isSelected]="isRubricSelected(rubric.id)"
+            (addRequested)="addRequested.emit($event)"
+            (clarifyRequested)="clarifyRequested.emit($event)"
+          />
+        }
+      </div>
+    }
+  </div>
+</div>

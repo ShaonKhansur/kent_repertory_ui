@@ -26,6 +26,7 @@ export interface SearchedRubric {
 export interface SearchResponse {
   query: string;
   chapter: string;
+  chapters?: string[];
   count: number;
   rubrics: SearchedRubric[];
 }
@@ -62,7 +63,7 @@ export interface HealthResponse {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class KentApiService {
   private http = inject(HttpClient);
@@ -77,8 +78,22 @@ export class KentApiService {
     return this.http.get<HealthResponse>(`${this.baseUrl}/health`);
   }
 
-  searchRubrics(query: string, chapter: string = 'Mind', topK: number = 5): Observable<SearchResponse> {
-    return this.http.post<SearchResponse>(`${this.baseUrl}/search`, { query, chapter, topK });
+  searchRubrics(
+    query: string,
+    chapters: string[] | string = 'Mind',
+    topK: number = 8,
+  ): Observable<SearchResponse> {
+    const chaptersPayload = Array.isArray(chapters)
+      ? chapters
+      : typeof chapters === 'string'
+        ? [chapters]
+        : ['Mind'];
+    return this.http.post<SearchResponse>(`${this.baseUrl}/search`, {
+      query,
+      chapters: chaptersPayload,
+      chapter: chaptersPayload[0] || 'Mind',
+      topK,
+    });
   }
 
   getClarifyingQuestions(rubric_id: string, rubric_path?: string): Observable<ClarifyResponse> {
@@ -91,7 +106,7 @@ export class KentApiService {
 
   addRubric(rubric: SearchedRubric) {
     const current = this.selectedRubrics();
-    if (!current.some(r => r.id === rubric.id)) {
+    if (!current.some((r) => r.id === rubric.id)) {
       const updated = [...current, rubric];
       this.selectedRubrics.set(updated);
       this.refreshRepertorization();
@@ -99,7 +114,7 @@ export class KentApiService {
   }
 
   removeRubric(rubricId: string) {
-    const updated = this.selectedRubrics().filter(r => r.id !== rubricId);
+    const updated = this.selectedRubrics().filter((r) => r.id !== rubricId);
     this.selectedRubrics.set(updated);
     if (updated.length > 0) {
       this.refreshRepertorization();
@@ -114,7 +129,7 @@ export class KentApiService {
   }
 
   refreshRepertorization() {
-    const ids = this.selectedRubrics().map(r => r.id);
+    const ids = this.selectedRubrics().map((r) => r.id);
     if (ids.length === 0) {
       this.repertorizationMatrix.set(null);
       return;
@@ -128,7 +143,7 @@ export class KentApiService {
       error: (err) => {
         console.error('Repertorization calculation failed', err);
         this.isRepertorizing.set(false);
-      }
+      },
     });
   }
 }

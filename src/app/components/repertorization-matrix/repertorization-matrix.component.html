@@ -1,0 +1,207 @@
+<section class="repertory-panel" aria-label="Deterministic Repertorization Analysis">
+  <!-- Panel Header -->
+  <div class="panel-header">
+    <div class="header-brand">
+      <span class="panel-icon">📊</span>
+      <div>
+        <h2 class="panel-title">Deterministic Repertorization</h2>
+        <span class="panel-subtitle">Weighted Kentian Grade Matrix</span>
+      </div>
+    </div>
+
+    @if (api.repertorizationMatrix(); as matrix) {
+      <div class="header-actions">
+        <button
+          type="button"
+          class="btn-tool btn-export"
+          (click)="exportCsv()"
+          title="Download complete matrix as CSV"
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span class="tool-label">Export CSV</span>
+        </button>
+      </div>
+    }
+  </div>
+
+  <!-- Isolated Case Basket Component -->
+  <app-case-basket
+    [selectedRubrics]="api.selectedRubrics()"
+    (removeRubric)="api.removeRubric($event)"
+    (clearAll)="api.clearAllRubrics()"
+  />
+
+  <!-- Matrix Calculation State & Controls -->
+  <div class="matrix-body">
+    @if (api.isRepertorizing()) {
+      <div class="matrix-loading">
+        <span class="app-spinner-large"></span>
+        <p class="loading-title">Calculating exact deterministic remedy scores...</p>
+        <span class="loading-sub">Cross-analyzing {{ api.selectedRubrics().length }} rubrics</span>
+      </div>
+    } @else if (api.repertorizationMatrix(); as matrix) {
+      <!-- Matrix Toolbar: Filter & View Toggle -->
+      <div class="matrix-toolbar">
+        <div class="search-remedy-box">
+          <span class="search-mini-icon">🔍</span>
+          <input
+            type="text"
+            class="remedy-search-input"
+            placeholder="Filter remedy (e.g., lyc, nat-m, calc)..."
+            [ngModel]="remedyFilter()"
+            (ngModelChange)="remedyFilter.set($event)"
+            aria-label="Filter remedies by name or abbreviation"
+          />
+          @if (remedyFilter()) {
+            <button type="button" class="clear-mini-btn" (click)="remedyFilter.set('')">✕</button>
+          }
+        </div>
+
+        <div class="view-controls">
+          <span class="remedies-counter">
+            Showing {{ displayedRemedies().length }} of {{ totalRankedCount() }} remedies
+          </span>
+
+          <button
+            type="button"
+            class="btn-toggle-view"
+            (click)="toggleShowAll()"
+            [title]="
+              showAllRemedies()
+                ? 'Show only top 15 ranked remedies'
+                : 'Show all ranked remedies in scrollable table'
+            "
+          >
+            @if (showAllRemedies()) {
+              <span>Show Top 15</span>
+            } @else {
+              <span>Show All ({{ totalRankedCount() }})</span>
+            }
+          </button>
+        </div>
+      </div>
+
+      <!-- Scrollable Matrix Table Container -->
+      <div class="table-scroll-container">
+        <table class="repertory-table" role="table">
+          <thead>
+            <tr>
+              <th class="th-sticky th-rank">Rank</th>
+              <th class="th-sticky th-name">Remedy Name</th>
+              <th class="th-sticky th-abbr">Abbr</th>
+              <th class="th-covered">Coverage</th>
+              <th class="th-score">Score</th>
+              @for (r of matrix.rubrics_summary; track r.index) {
+                <th
+                  class="th-rubric"
+                  [title]="
+                    'R' +
+                    (r.index + 1) +
+                    ': ' +
+                    r.path +
+                    ' (Page ' +
+                    r.page +
+                    ', ' +
+                    r.remedy_count +
+                    ' remedies)'
+                  "
+                >
+                  <div class="rubric-header-content">
+                    <span class="rubric-header-tag">R{{ r.index + 1 }}</span>
+                    <span class="rubric-header-count">({{ r.remedy_count }})</span>
+                  </div>
+                </th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (rem of displayedRemedies(); track rem.abbr; let rIdx = $index) {
+              <tr [class.simillimum-row]="rem.rank === 1">
+                <!-- Rank -->
+                <td class="td-sticky td-rank">
+                  @if (rem.rank === 1) {
+                    <span class="simillimum-badge" title="Simillimum: Rank 1 Remedy">👑 1</span>
+                  } @else {
+                    <span class="rank-number">{{ rem.rank }}</span>
+                  }
+                </td>
+
+                <!-- Remedy Full Name -->
+                <td class="td-sticky td-name" [title]="rem.full_name">
+                  <span class="remedy-fullname">{{ rem.full_name }}</span>
+                </td>
+
+                <!-- Remedy Abbreviation -->
+                <td class="td-sticky td-abbr">
+                  <span class="remedy-abbr-badge">{{ rem.abbr }}</span>
+                </td>
+
+                <!-- Coverage Gauge -->
+                <td class="td-covered">
+                  <div
+                    class="coverage-wrapper"
+                    [title]="
+                      rem.rubrics_covered + ' of ' + matrix.rubrics_analyzed + ' rubrics covered'
+                    "
+                  >
+                    <span class="coverage-text"
+                      >{{ rem.rubrics_covered }}/{{ matrix.rubrics_analyzed }}</span
+                    >
+                    <div class="mini-bar-track">
+                      <div
+                        class="mini-bar-fill"
+                        [style.width.%]="(rem.rubrics_covered / matrix.rubrics_analyzed) * 100"
+                      ></div>
+                    </div>
+                  </div>
+                </td>
+
+                <!-- Total Weighted Score -->
+                <td class="td-score">
+                  <strong class="score-value">{{ rem.total_score }}</strong>
+                </td>
+
+                <!-- Individual Rubric Grades -->
+                @for (r of matrix.rubrics_summary; track r.index) {
+                  <td class="td-grade">
+                    @if (rem.rubric_grades[r.index]; as g) {
+                      <span
+                        class="matrix-grade-cell"
+                        [ngClass]="'table-grade-' + g"
+                        [title]="'Grade ' + g + ' in R' + (r.index + 1)"
+                      >
+                        {{ g }}
+                      </span>
+                    } @else {
+                      <span class="grade-absent">-</span>
+                    }
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else {
+      <div class="matrix-empty">
+        <div class="empty-icon">📊</div>
+        <p class="empty-title">Repertorization Matrix is Empty</p>
+        <span class="empty-desc"
+          >Add one or more symptom rubrics using the search on the left to compute the deterministic
+          remedy rankings.</span
+        >
+      </div>
+    }
+  </div>
+</section>

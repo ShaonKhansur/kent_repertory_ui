@@ -1,288 +1,101 @@
 <div class="app-layout">
   <!-- Top Navigation Header -->
-  <header class="app-header">
-    <div class="header-brand">
-      <div class="brand-icon">🌿</div>
-      <div>
-        <h1 class="brand-title">Kent's Repertory RAG</h1>
-        <p class="brand-subtitle">Clinical Homeopathic Assistant • J.T. Kent (1,423 Pages)</p>
-      </div>
-    </div>
+  <app-header [healthStatus]="healthStatus()" />
 
-    <div class="header-status">
-      @if (healthStatus()) {
-        <div class="status-pill status-healthy">
-          <span class="status-dot"></span>
-          <span>Ollama Online</span>
-          <span class="status-divider">•</span>
-          <span class="status-model">{{ healthStatus()?.models?.embedding }}</span>
-          <span class="status-divider">•</span>
-          <span class="status-model">{{ healthStatus()?.models?.chat }}</span>
-        </div>
-      } @else {
-        <div class="status-pill status-offline">
-          <span class="status-dot"></span>
-          <span>Connecting to Local API (Port 3000)...</span>
-        </div>
+  <!-- Mobile Segmented Navigation Bar (Visible only on mobile/small screens) -->
+  <nav class="mobile-nav-bar" aria-label="Mobile workspace views">
+    <button
+      type="button"
+      class="mobile-nav-item"
+      [class.active]="activeMobileTab() === 'search'"
+      (click)="setMobileTab('search')"
+    >
+      <span class="nav-icon">🔍</span>
+      <span class="nav-text">Search</span>
+      <span class="nav-badge">{{ searchResults().length }}</span>
+    </button>
+
+    <button
+      type="button"
+      class="mobile-nav-item"
+      [class.active]="activeMobileTab() === 'clarify'"
+      (click)="setMobileTab('clarify')"
+    >
+      <span class="nav-icon">💡</span>
+      <span class="nav-text">Clarify</span>
+      @if (activeClarify() || isClarifying()) {
+        <span class="nav-dot-active" title="Clarify data active"></span>
       }
-      <a href="http://localhost:3000/api/docs" target="_blank" class="docs-link">
-        <span>Swagger API Docs</span>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
-      </a>
-    </div>
-  </header>
+    </button>
+
+    <button
+      type="button"
+      class="mobile-nav-item"
+      [class.active]="activeMobileTab() === 'matrix'"
+      (click)="setMobileTab('matrix')"
+    >
+      <span class="nav-icon">📊</span>
+      <span class="nav-text">Case Matrix</span>
+      <span class="nav-badge" [class.badge-active]="caseCount() > 0">{{ caseCount() }}</span>
+    </button>
+  </nav>
 
   <!-- Main Workspace Grid -->
   <main class="main-content">
     <!-- Left Column: Search & Rubric Explorer -->
-    <section class="panel search-panel">
-      <div class="panel-header">
-        <h2 class="panel-title">
-          <span class="panel-icon">🔍</span> Symptom Rubric Search
-        </h2>
-        <span class="rubric-count-badge">{{ searchResults().length }} Matches</span>
-      </div>
-
-      <!-- Search Controls -->
-      <div class="search-form">
-        <div class="search-input-wrapper">
-          <input
-            type="text"
-            class="search-input"
-            placeholder="Type symptom in natural language or Kent terms..."
-            [ngModel]="query()"
-            (ngModelChange)="query.set($event)"
-            (keydown.enter)="onSearch()"
-          />
-          <button class="search-btn" (click)="onSearch()" [disabled]="isSearching()">
-            @if (isSearching()) {
-              <span class="spinner"></span>
-            } @else {
-              <span>Search</span>
-            }
-          </button>
-        </div>
-
-        <div class="filter-row">
-          <label class="filter-label">Chapter:</label>
-          <select
-            class="chapter-select"
-            [ngModel]="selectedChapter()"
-            (ngModelChange)="selectedChapter.set($event); onSearch()"
-          >
-            @for (ch of chapters; track ch) {
-              <option [value]="ch">{{ ch }}</option>
-            }
-          </select>
+    <section
+      class="workspace-panel search-panel"
+      [class.mobile-hidden]="activeMobileTab() !== 'search'"
+      aria-label="Symptom Rubric Search and Results"
+    >
+      <div class="panel-header-bar">
+        <div class="panel-title-group">
+          <span class="panel-icon">🔍</span>
+          <h2 class="panel-heading">Symptom Rubric Search</h2>
         </div>
       </div>
 
-      <!-- Rubrics Results List -->
-      <div class="rubrics-list">
-        @if (isSearching()) {
-          <div class="loading-state">
-            <span class="spinner-large"></span>
-            <p>Searching Kent's Repertory via local vector embeddings...</p>
-          </div>
-        } @else if (searchResults().length === 0) {
-          <div class="empty-state">
-            <p>No rubrics found. Try typing another symptom like "anxiety night" or "headache sun".</p>
-          </div>
-        } @else {
-          @for (rubric of searchResults(); track rubric.id) {
-            <div class="rubric-card" [class.selected]="isRubricSelected(rubric.id)">
-              <div class="rubric-meta">
-                <span class="page-tag">Page {{ rubric.page }}</span>
-                <span class="depth-tag">Depth {{ rubric.depth }}</span>
-                <span class="score-tag">Score: {{ (rubric.similarity_score * 100).toFixed(0) }}%</span>
-                <span class="author-tag">{{ rubric.author }}</span>
-              </div>
+      <app-rubric-search [isSearching]="isSearching()" (searchTriggered)="executeSearch($event)" />
 
-              <h3 class="rubric-path">{{ rubric.rubric_path }}</h3>
-
-              <!-- Graded Remedies Preview -->
-              <div class="remedies-preview">
-                <span class="remedies-label">Remedies ({{ rubric.remedy_count }}):</span>
-                <div class="remedies-badges">
-                  @for (rem of rubric.remedies.slice(0, 8); track rem.abbr) {
-                    <span class="badge" [ngClass]="'badge-grade-' + rem.grade" [title]="rem.full_name + ' (Grade ' + rem.grade + ')'">
-                      {{ rem.abbr }}
-                    </span>
-                  }
-                  @if (rubric.remedies.length > 8) {
-                    <span class="badge-more">+{{ rubric.remedies.length - 8 }} more</span>
-                  }
-                </div>
-              </div>
-
-              <!-- Action Buttons -->
-              <div class="rubric-actions">
-                <button
-                  class="btn-action btn-add"
-                  [disabled]="isRubricSelected(rubric.id)"
-                  (click)="addRubric(rubric)"
-                >
-                  @if (isRubricSelected(rubric.id)) {
-                    <span>✓ In Case</span>
-                  } @else {
-                    <span>+ Add to Case</span>
-                  }
-                </button>
-
-                <button class="btn-action btn-clarify" (click)="openClarify(rubric)">
-                  <span>❓ Clarify Modalities</span>
-                </button>
-
-                <a [href]="rubric.source_url" target="_blank" class="source-link" title="Open page on homeoint.org">
-                  <span>📖 Source</span>
-                </a>
-              </div>
-            </div>
-          }
-        }
-      </div>
+      <app-rubric-list
+        [rubrics]="searchResults()"
+        [isSearching]="isSearching()"
+        [selectedIds]="selectedRubricIds()"
+        (addRequested)="addRubricToCase($event)"
+        (clarifyRequested)="openClarify($event)"
+      />
     </section>
 
-    <!-- Center/Right Column: Clinical Clarify & Repertorization Matrix -->
-    <div class="analysis-column">
-      <!-- AI Clarifying Questions Panel -->
+    <!-- Right Column: Clarify & Repertorization Analysis -->
+    <div class="analysis-column" [class.mobile-hidden]="activeMobileTab() === 'search'">
+      <!-- Clarifying Questions Panel -->
       @if (activeClarify() || isClarifying()) {
-        <section class="panel clarify-panel">
-          <div class="panel-header">
-            <h2 class="panel-title">
-              <span class="panel-icon">💡</span> Clinical Clarifying Assistant (llama3.2)
-            </h2>
-            <button class="close-btn" (click)="closeClarify()">✕</button>
-          </div>
-
-          @if (isClarifying()) {
-            <div class="loading-state">
-              <span class="spinner-large"></span>
-              <p>Analyzing sub-rubric modalities and formulating clinical questions...</p>
-            </div>
-          } @else if (activeClarify()) {
-            <div class="clarify-body">
-              <div class="context-banner">
-                <span class="context-label">Parent Rubric:</span>
-                <strong>{{ activeClarify()?.rubric_path }}</strong> (Page {{ activeClarify()?.page }})
-              </div>
-
-              <!-- Sub-rubric Modality Chips -->
-              <div class="subrubrics-section">
-                <span class="subrubrics-title">Immediate Sub-rubrics (Modality Options):</span>
-                <div class="chip-container">
-                  @for (child of activeClarify()?.child_sub_rubrics; track child.label) {
-                    <button class="modality-chip" (click)="selectSubRubric(child.label)">
-                      <span>{{ child.label }}</span>
-                      <small>({{ child.remedies_count }} rem)</small>
-                    </button>
-                  }
-                </div>
-              </div>
-
-              <!-- AI Generated Clinical Questions -->
-              <div class="questions-section">
-                <span class="questions-title">Questions to Ask Patient:</span>
-                <div class="questions-text">
-                  {{ activeClarify()?.clarifying_questions }}
-                </div>
-              </div>
-            </div>
-          }
-        </section>
+        <div class="clarify-wrapper" [class.mobile-hidden]="activeMobileTab() !== 'clarify'">
+          <app-clarify-panel
+            [clarifyData]="activeClarify()"
+            [isClarifying]="isClarifying()"
+            (closeRequested)="closeClarify()"
+            (modalitySelected)="onModalitySelected($event)"
+          />
+        </div>
+      } @else if (activeMobileTab() === 'clarify') {
+        <div class="clarify-empty-mobile">
+          <span class="empty-icon">💡</span>
+          <h3>No Active Rubric Selected for Clarification</h3>
+          <p>
+            Go to the <strong>Search</strong> tab and tap <strong>"Clarify"</strong> on any rubric
+            to analyze sub-modalities and view AI clinical interview questions.
+          </p>
+          <button type="button" class="btn-return-search" (click)="setMobileTab('search')">
+            ← Return to Rubric Search
+          </button>
+        </div>
       }
 
-      <!-- Case Basket & Deterministic Repertorization -->
-      <section class="panel repertory-panel">
-        <div class="panel-header">
-          <div class="header-with-badge">
-            <h2 class="panel-title">
-              <span class="panel-icon">📊</span> Deterministic Repertorization
-            </h2>
-            <span class="case-count-pill">{{ api.selectedRubrics().length }} Symptoms</span>
-          </div>
-
-          @if (api.selectedRubrics().length > 0) {
-            <button class="btn-clear" (click)="api.clearAllRubrics()">Clear All</button>
-          }
-        </div>
-
-        <!-- Selected Rubrics Basket -->
-        <div class="basket-section">
-          @if (api.selectedRubrics().length === 0) {
-            <div class="basket-empty">
-              <p>No symptoms added yet. Click <strong>"+ Add to Case"</strong> on any rubric to build your case.</p>
-            </div>
-          } @else {
-            <div class="basket-tags">
-              @for (r of api.selectedRubrics(); track r.id; let idx = $index) {
-                <div class="basket-tag">
-                  <span class="tag-index">R{{ idx + 1 }}</span>
-                  <span class="tag-text">{{ r.rubric_path }}</span>
-                  <button class="tag-remove" (click)="removeRubric(r.id)" title="Remove symptom">✕</button>
-                </div>
-              }
-            </div>
-          }
-        </div>
-
-        <!-- Matrix Calculation Table -->
-        <div class="matrix-container">
-          @if (api.isRepertorizing()) {
-            <div class="loading-state">
-              <span class="spinner-large"></span>
-              <p>Calculating exact remedy scores...</p>
-            </div>
-          } @else if (api.repertorizationMatrix(); as matrix) {
-            <div class="table-wrapper">
-              <table class="repertory-table">
-                <thead>
-                  <tr>
-                    <th>Rank</th>
-                    <th>Remedy Name</th>
-                    <th>Abbr</th>
-                    <th>Covered</th>
-                    <th>Score</th>
-                    @for (r of matrix.rubrics_summary; track r.index) {
-                      <th [title]="r.path + ' (Page ' + r.page + ')'">R{{ r.index + 1 }}</th>
-                    }
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (rem of matrix.ranked_remedies.slice(0, 12); track rem.abbr; let rIdx = $index) {
-                    <tr [class.simillimum]="rIdx === 0">
-                      <td class="col-rank">
-                        @if (rIdx === 0) {
-                          <span class="simillimum-crown" title="Simillimum (Top Remedy)">👑 1</span>
-                        } @else {
-                          {{ rem.rank }}
-                        }
-                      </td>
-                      <td class="col-name">{{ rem.full_name }}</td>
-                      <td class="col-abbr">{{ rem.abbr }}</td>
-                      <td class="col-covered">
-                        <span class="coverage-bar-text">{{ rem.rubrics_covered }}/{{ matrix.rubrics_analyzed }}</span>
-                      </td>
-                      <td class="col-score">
-                        <strong>{{ rem.total_score }}</strong>
-                      </td>
-                      @for (r of matrix.rubrics_summary; track r.index) {
-                        <td class="col-grade">
-                          @if (rem.rubric_grades[r.index]; as g) {
-                            <span class="table-grade" [ngClass]="'grade-' + g">{{ g }}</span>
-                          } @else {
-                            <span class="grade-none">-</span>
-                          }
-                        </td>
-                      }
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            </div>
-          }
-        </div>
-      </section>
+      <!-- Deterministic Repertorization Matrix -->
+      <div class="matrix-wrapper" [class.mobile-hidden]="activeMobileTab() !== 'matrix'">
+        <app-repertorization-matrix />
+      </div>
     </div>
   </main>
 </div>

@@ -1,0 +1,216 @@
+:host {
+  display: block;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  width: 100%;
+}
+
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.85rem 1.75rem;
+  background-color: var(--bg-header);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--border-color);
+  transition:
+    background-color var(--transition-normal),
+    border-color var(--transition-normal);
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.brand-icon {
+  font-size: 1.75rem;
+  background: var(--accent-emerald-subtle);
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  box-shadow: 0 2px 8px var(--accent-emerald-subtle);
+  flex-shrink: 0;
+}
+
+.brand-title {
+  font-family: var(--font-heading);
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.brand-subtitle {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  line-height: 1.2;
+  margin-top: 2px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.status-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 9999px;
+  font-size: 0.76rem;
+  font-weight: 500;
+  transition: all var(--transition-fast);
+}
+
+.status-healthy {
+  background: var(--accent-emerald-subtle);
+  color: var(--accent-emerald);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.status-offline {
+  background: var(--accent-rose-subtle);
+  color: var(--accent-rose);
+  border: 1px solid rgba(244, 63, 94, 0.3);
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 7px currentColor;
+}
+
+.status-divider {
+  opacity: 0.35;
+}
+
+.status-model {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-primary);
+}
+
+/* Theme Toggle Button */
+.theme-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 38px;
+  min-width: 38px;
+  transition: all var(--transition-fast);
+}
+
+.theme-toggle-btn:hover {
+  border-color: var(--accent-amber);
+  background: var(--accent-amber-subtle);
+  color: var(--accent-amber);
+  transform: translateY(-1px);
+}
+
+.theme-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.theme-label {
+  display: inline-block;
+}
+
+/* Swagger Docs link */
+.docs-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--accent-cyan);
+  text-decoration: none;
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 0.4rem 0.75rem;
+  border-radius: var(--radius-md);
+  background: var(--accent-cyan-subtle);
+  border: 1px solid rgba(6, 182, 212, 0.25);
+  min-height: 38px;
+  transition: all var(--transition-fast);
+}
+
+.docs-link:hover {
+  background: rgba(6, 182, 212, 0.22);
+  transform: translateY(-1px);
+}
+
+/* Responsive adjustments */
+@media (max-width: 900px) {
+  .status-model,
+  .status-divider {
+    display: none;
+  }
+}
+
+@media (max-width: 680px) {
+  .app-header {
+    padding: 0.75rem 1rem;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+  }
+
+  .brand-subtitle {
+    display: none;
+  }
+
+  .brand-title {
+    font-size: 1.1rem;
+  }
+
+  .brand-icon {
+    width: 38px;
+    height: 38px;
+    font-size: 1.4rem;
+  }
+
+  .header-actions {
+    margin-left: auto;
+    gap: 0.5rem;
+  }
+
+  .theme-label {
+    display: none;
+  }
+
+  .status-text {
+    display: none;
+  }
+
+  .status-pill {
+    padding: 0.4rem;
+    border-radius: 50%;
+  }
+
+  .docs-link span {
+    display: none;
+  }
+
+  .docs-link {
+    padding: 0.4rem 0.6rem;
+  }
+}

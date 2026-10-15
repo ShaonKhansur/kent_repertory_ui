@@ -1,53 +1,86 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import {
+  Component,
+  ChangeDetectionStrategy,
+  inject,
+  OnInit,
+  signal,
+  computed,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { KentApiService, SearchedRubric, ClarifyResponse, HealthResponse } from './services/kent-api.service';
+import {
+  KentApiService,
+  SearchedRubric,
+  ClarifyResponse,
+  HealthResponse,
+} from './services/kent-api.service';
+import { AppHeaderComponent } from './components/header/header.component';
+import {
+  RubricSearchComponent,
+  SearchCriteria,
+} from './components/rubric-search/rubric-search.component';
+import { RubricListComponent } from './components/rubric-list/rubric-list.component';
+import { ClarifyPanelComponent } from './components/clarify-panel/clarify-panel.component';
+import { RepertorizationMatrixComponent } from './components/repertorization-matrix/repertorization-matrix.component';
+
+export type MobileTab = 'search' | 'clarify' | 'matrix';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [
+    CommonModule,
+    AppHeaderComponent,
+    RubricSearchComponent,
+    RubricListComponent,
+    ClarifyPanelComponent,
+    RepertorizationMatrixComponent,
+  ],
   templateUrl: './app.html',
-  styleUrl: './app.css'
+  styleUrl: './app.css',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class App implements OnInit {
   public api = inject(KentApiService);
 
-  public query = signal('forsaken feeling in the evening');
-  public selectedChapter = signal('Mind');
-  public isSearching = signal(false);
+  // Search and clarification state
+  public isSearching = signal<boolean>(false);
   public searchResults = signal<SearchedRubric[]>([]);
   public activeClarify = signal<ClarifyResponse | null>(null);
-  public isClarifying = signal(false);
+  public isClarifying = signal<boolean>(false);
   public healthStatus = signal<HealthResponse | null>(null);
 
-  public chapters = [
-    'Mind', 'Vertigo', 'Head', 'Eye', 'Vision', 'Ear', 'Hearing', 'Nose',
-    'Face', 'Mouth', 'Teeth', 'Throat', 'External Throat', 'Stomach', 'Abdomen',
-    'Rectum', 'Stool', 'Bladder', 'Kidneys', 'Prostate Gland', 'Urethra', 'Urine',
-    'Genitalia Male', 'Genitalia Female', 'Larynx and Trachea', 'Respiration', 'Cough',
-    'Expectoration', 'Chest', 'Back', 'Extremities', 'Sleep', 'Chill', 'Fever',
-    'Perspiration', 'Skin', 'Generalities'
-  ];
+  // Mobile navigation tab
+  public activeMobileTab = signal<MobileTab>('search');
+
+  // Computed IDs of rubrics currently in the case basket
+  public selectedRubricIds = computed<string[]>(() => {
+    return this.api.selectedRubrics().map((r) => r.id);
+  });
+
+  public caseCount = computed<number>(() => {
+    return this.api.selectedRubrics().length;
+  });
 
   ngOnInit() {
     this.checkHealth();
-    this.onSearch();
-  }
-
-  checkHealth() {
-    this.api.checkHealth().subscribe({
-      next: (res) => this.healthStatus.set(res),
-      error: () => this.healthStatus.set(null)
+    // Default initial search
+    this.executeSearch({
+      query: 'forsaken feeling in the evening',
+      chapters: ['Mind'],
+      topK: 10,
     });
   }
 
-  onSearch() {
-    const q = this.query().trim();
-    if (!q) return;
+  public checkHealth() {
+    this.api.checkHealth().subscribe({
+      next: (res) => this.healthStatus.set(res),
+      error: () => this.healthStatus.set(null),
+    });
+  }
 
+  public executeSearch(criteria: SearchCriteria) {
     this.isSearching.set(true);
-    this.api.searchRubrics(q, this.selectedChapter(), 6).subscribe({
+    this.api.searchRubrics(criteria.query, criteria.chapters, criteria.topK).subscribe({
       next: (res) => {
         this.searchResults.set(res.rubrics || []);
         this.isSearching.set(false);
@@ -56,12 +89,15 @@ export class App implements OnInit {
         console.error('Search error', err);
         this.searchResults.set([]);
         this.isSearching.set(false);
-      }
+      },
     });
   }
 
-  openClarify(rubric: SearchedRubric) {
+  public openClarify(rubric: SearchedRubric) {
     this.isClarifying.set(true);
+    // On mobile screens, automatically navigate to the Clarify tab
+    this.activeMobileTab.set('clarify');
+
     this.api.getClarifyingQuestions(rubric.id, rubric.rubric_path).subscribe({
       next: (res) => {
         this.activeClarify.set(res);
@@ -70,29 +106,33 @@ export class App implements OnInit {
       error: (err) => {
         console.error('Clarify error', err);
         this.isClarifying.set(false);
-      }
+      },
     });
   }
 
-  closeClarify() {
+  public closeClarify() {
     this.activeClarify.set(null);
+    if (this.activeMobileTab() === 'clarify') {
+      this.activeMobileTab.set('search');
+    }
   }
 
-  addRubric(rubric: SearchedRubric) {
+  public onModalitySelected(modality: string) {
+    // Append modality and re-run search in the search component
+    const ch = this.activeClarify()?.chapter;
+    this.executeSearch({
+      query: `${modality}`,
+      chapters: ch ? [ch] : ['Mind'],
+      topK: 10,
+    });
+    this.activeMobileTab.set('search');
+  }
+
+  public addRubricToCase(rubric: SearchedRubric) {
     this.api.addRubric(rubric);
   }
 
-  removeRubric(id: string) {
-    this.api.removeRubric(id);
-  }
-
-  isRubricSelected(id: string): boolean {
-    return this.api.selectedRubrics().some(r => r.id === id);
-  }
-
-  selectSubRubric(subLabel: string) {
-    const current = this.query();
-    this.query.set(`${current} ${subLabel}`);
-    this.onSearch();
+  public setMobileTab(tab: MobileTab) {
+    this.activeMobileTab.set(tab);
   }
 }

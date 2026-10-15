@@ -1,0 +1,71 @@
+<section class="clarify-panel" aria-label="Clinical Clarifying Assistant">
+  <!-- Panel Header -->
+  <div class="panel-header">
+    <div class="title-with-icon">
+      <span class="panel-icon">💡</span>
+      <div>
+        <h2 class="panel-title">Clinical Clarifying Assistant</h2>
+        <span class="panel-subtitle">AI Modality Analysis (llama3.2)</span>
+      </div>
+    </div>
+    <button
+      type="button"
+      class="close-btn"
+      (click)="onClose()"
+      title="Close clarifying panel"
+      aria-label="Close clarify panel"
+    >
+      ✕
+    </button>
+  </div>
+
+  <!-- Loading State -->
+  @if (isClarifying()) {
+    <div class="loading-state">
+      <span class="app-spinner-large"></span>
+      <p class="loading-text">
+        Analyzing sub-rubric modalities and formulating clinical questions...
+      </p>
+      <span class="loading-sub">Consulting local Ollama llama3.2</span>
+    </div>
+  } @else if (clarifyData(); as data) {
+    <div class="panel-body">
+      <!-- Context Banner -->
+      <div class="context-banner">
+        <span class="context-label">Active Rubric:</span>
+        <strong class="context-path">{{ data.rubric_path }}</strong>
+        <span class="context-page">Page {{ data.page }} • {{ data.chapter }}</span>
+      </div>
+
+      <!-- Immediate Sub-rubric Modality Chips -->
+      @if (data.child_sub_rubrics && data.child_sub_rubrics.length > 0) {
+        <div class="section-block">
+          <span class="section-heading">Sub-rubric Modalities (Tap to filter):</span>
+          <div class="chip-container">
+            @for (child of data.child_sub_rubrics; track child.label) {
+              <button
+                type="button"
+                class="modality-chip"
+                (click)="onModalityClick(child.label)"
+                [title]="'Filter symptom by modality: ' + child.label"
+              >
+                <span class="chip-label">{{ child.label }}</span>
+                <span class="chip-count">{{ child.remedies_count }} rem</span>
+              </button>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- AI Clinical Questions -->
+      <div class="section-block">
+        <span class="section-heading">Questions to Ask Patient:</span>
+        <div class="questions-card">
+          <div class="questions-content">
+            {{ data.clarifying_questions }}
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</section>

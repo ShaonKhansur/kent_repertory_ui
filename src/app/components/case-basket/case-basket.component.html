@@ -1,0 +1,61 @@
+<div class="basket-wrapper">
+  <!-- Header Bar -->
+  <div class="basket-header">
+    <div class="header-left">
+      <span class="basket-title">Active Case Basket</span>
+      <span class="count-pill">{{ selectedRubrics().length }} Symptoms</span>
+    </div>
+
+    @if (selectedRubrics().length > 0) {
+      <div class="header-right">
+        @if (showConfirmClear()) {
+          <div class="confirm-box">
+            <span class="confirm-text">Clear all symptoms?</span>
+            <button type="button" class="btn-confirm-yes" (click)="confirmClear()">Yes</button>
+            <button type="button" class="btn-confirm-no" (click)="cancelClear()">No</button>
+          </div>
+        } @else {
+          <button
+            type="button"
+            class="btn-clear"
+            (click)="promptClear()"
+            title="Remove all symptoms from active case"
+          >
+            Clear All
+          </button>
+        }
+      </div>
+    }
+  </div>
+
+  <!-- Symptoms Tags Area -->
+  <div class="basket-content">
+    @if (selectedRubrics().length === 0) {
+      <div class="basket-empty">
+        <span class="empty-icon">➕</span>
+        <p>
+          No symptoms added yet. Click <strong>"+ Add to Case"</strong> on any rubric to build your
+          clinical case matrix.
+        </p>
+      </div>
+    } @else {
+      <div class="tags-container">
+        @for (r of selectedRubrics(); track r.id; let idx = $index) {
+          <div class="symptom-tag" [title]="r.rubric_path">
+            <span class="tag-badge">R{{ idx + 1 }}</span>
+            <span class="tag-text">{{ r.rubric_path }}</span>
+            <button
+              type="button"
+              class="tag-delete-btn"
+              (click)="onRemove(r.id)"
+              [title]="'Remove R' + (idx + 1) + ' from case'"
+              aria-label="Remove symptom"
+            >
+              ✕
+            </button>
+          </div>
+        }
+      </div>
+    }
+  </div>
+</div>

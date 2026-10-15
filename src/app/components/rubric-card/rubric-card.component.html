@@ -1,0 +1,102 @@
+<article class="rubric-card" [class.selected]="isSelected()">
+  <!-- Metadata Badges -->
+  <div class="rubric-meta">
+    <span class="meta-tag page-tag">Page {{ rubric().page }}</span>
+    <span class="meta-tag depth-tag">Depth {{ rubric().depth }}</span>
+    <span class="meta-tag score-tag"
+      >Match: {{ (rubric().similarity_score * 100).toFixed(0) }}%</span
+    >
+    <span class="meta-tag author-tag">{{ rubric().author }}</span>
+  </div>
+
+  <!-- Rubric Path Title -->
+  <h3 class="rubric-path">{{ rubric().rubric_path }}</h3>
+
+  <!-- Graded Remedies List (Expandable) -->
+  <div class="remedies-section">
+    <div class="remedies-header">
+      <span class="remedies-label"> Remedies ({{ rubric().remedy_count }}): </span>
+      @if (rubric().remedies.length > 8) {
+        <button
+          type="button"
+          class="toggle-all-btn"
+          (click)="toggleShowAllRemedies()"
+          [title]="
+            showAllRemedies() ? 'Collapse to top remedies' : 'Show all remedies in this rubric'
+          "
+        >
+          @if (showAllRemedies()) {
+            <span>Show less ▲</span>
+          } @else {
+            <span>+{{ remainingRemediesCount() }} more ▼</span>
+          }
+        </button>
+      }
+    </div>
+
+    <div class="remedies-badges" [class.expanded]="showAllRemedies()">
+      @for (rem of visibleRemedies(); track rem.abbr) {
+        <span
+          class="remedy-badge"
+          [ngClass]="'badge-grade-' + rem.grade"
+          [title]="rem.full_name + ' (Grade ' + rem.grade + ')'"
+        >
+          {{ rem.abbr }}
+        </span>
+      }
+    </div>
+  </div>
+
+  <!-- Action Buttons -->
+  <div class="rubric-actions">
+    <button
+      type="button"
+      class="action-btn btn-add"
+      [disabled]="isSelected()"
+      (click)="onAdd()"
+      [title]="isSelected() ? 'Already added to active case' : 'Add rubric to repertorization case'"
+    >
+      @if (isSelected()) {
+        <span class="btn-icon">✓</span>
+        <span>In Case</span>
+      } @else {
+        <span class="btn-icon">+</span>
+        <span>Add to Case</span>
+      }
+    </button>
+
+    <button
+      type="button"
+      class="action-btn btn-clarify"
+      (click)="onClarify()"
+      title="Ask patient AI clarifying questions and inspect sub-modalities"
+    >
+      <span class="btn-icon">💡</span>
+      <span>Clarify</span>
+    </button>
+
+    @if (rubric().source_url) {
+      <a
+        [href]="rubric().source_url"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="source-link"
+        title="Open historical repertory page on Homeoint.org"
+      >
+        <span>Source</span>
+        <svg
+          width="12"
+          height="12"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+          <polyline points="15 3 21 3 21 9"></polyline>
+          <line x1="10" y1="14" x2="21" y2="3"></line>
+        </svg>
+      </a>
+    }
+  </div>
+</article>

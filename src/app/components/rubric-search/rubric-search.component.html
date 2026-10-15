@@ -1,0 +1,209 @@
+<div class="search-container">
+  <!-- Search Input Bar -->
+  <div class="search-input-group">
+    <div class="input-wrapper">
+      <span class="search-icon" aria-hidden="true">
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+      </span>
+      <input
+        type="text"
+        class="search-input"
+        placeholder="Type symptom (e.g., anxiety night, headache sun, weeping)..."
+        [ngModel]="query()"
+        (ngModelChange)="query.set($event)"
+        (keydown.enter)="triggerSearch()"
+        aria-label="Symptom search query"
+      />
+      @if (query()) {
+        <button
+          type="button"
+          class="clear-btn"
+          (click)="clearQuery()"
+          title="Clear search"
+          aria-label="Clear search input"
+        >
+          ✕
+        </button>
+      }
+    </div>
+
+    <button
+      type="button"
+      class="search-btn"
+      (click)="triggerSearch()"
+      [disabled]="isSearching() || !query().trim()"
+      aria-label="Execute search"
+    >
+      @if (isSearching()) {
+        <span class="app-spinner"></span>
+        <span class="btn-text">Searching...</span>
+      } @else {
+        <span class="btn-text">Search</span>
+      }
+    </button>
+  </div>
+
+  <!-- Filter Controls Row (Multi-chapter selector & Limit) -->
+  <div class="filter-controls-row">
+    <!-- Multi-Chapter Selector -->
+    <div class="filter-group chapter-multiselect-group">
+      <label class="filter-label">Chapters:</label>
+      
+      <div class="multiselect-container">
+        <button
+          type="button"
+          class="chapter-trigger-btn"
+          (click)="toggleDropdown()"
+          [class.active]="isDropdownOpen()"
+          aria-haspopup="listbox"
+          [attr.aria-expanded]="isDropdownOpen()"
+        >
+          <span class="trigger-text">{{ chapterSummary() }}</span>
+          <span class="trigger-badge">{{ selectedChapters().length }}</span>
+          <svg class="chevron-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </button>
+
+        <!-- Dropdown Popover -->
+        @if (isDropdownOpen()) {
+          <div class="dropdown-backdrop" (click)="closeDropdown()"></div>
+          <div class="chapter-dropdown-panel" role="dialog" aria-label="Select Chapters">
+            <div class="panel-header">
+              <input
+                type="text"
+                class="filter-input"
+                placeholder="Filter chapters..."
+                [ngModel]="filterTerm()"
+                (ngModelChange)="filterTerm.set($event)"
+                (click)="$event.stopPropagation()"
+              />
+              <div class="header-actions">
+                <button type="button" class="action-btn" (click)="selectAll()">All (37)</button>
+                <button type="button" class="action-btn" (click)="resetToDefault()">Reset (Mind)</button>
+              </div>
+            </div>
+
+            <div class="chapter-list">
+              @for (ch of filteredChapters(); track ch) {
+                <label class="chapter-checkbox-row" [class.selected]="isChapterSelected(ch)">
+                  <input
+                    type="checkbox"
+                    [checked]="isChapterSelected(ch)"
+                    (change)="toggleChapter(ch)"
+                  />
+                  <span class="ch-name">{{ ch }}</span>
+                </label>
+              }
+            </div>
+
+            <div class="panel-footer">
+              <span class="count-note">{{ selectedChapters().length }} chapter(s) selected</span>
+              <button type="button" class="apply-btn" (click)="triggerSearch()">Apply & Search</button>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Quick "All Chapters" Pill -->
+    <button
+      type="button"
+      class="pill-toggle"
+      [class.pill-active]="isAllSelected()"
+      (click)="isAllSelected() ? resetToDefault() : selectAll()"
+      title="Search all 37 chapters of Kent's Repertory"
+    >
+      {{ isAllSelected() ? '✓ All Chapters Active' : 'Search All Chapters (37)' }}
+    </button>
+
+    <!-- Results Limit (topK from frontend) -->
+    <div class="filter-group topk-group">
+      <label class="filter-label" for="topk-select">Limit:</label>
+      <div class="select-wrapper">
+        <select
+          id="topk-select"
+          class="custom-select topk-select"
+          [ngModel]="topK()"
+          (ngModelChange)="onTopKChange(+$event)"
+        >
+          @for (k of topKOptions; track k) {
+            <option [value]="k">{{ k }} rubrics</option>
+          }
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Selected Chapters Chip Bar (if not all 37 selected) -->
+  @if (!isAllSelected() && selectedChapters().length > 1) {
+    <div class="selected-chips-bar">
+      <span class="chips-label">Searching in:</span>
+      @for (ch of selectedChapters(); track ch) {
+        <span class="selected-chip">
+          {{ ch }}
+          @if (selectedChapters().length > 1) {
+            <button
+              type="button"
+              class="chip-remove"
+              (click)="removeChapter(ch, $event)"
+              title="Remove {{ ch }}"
+            >
+              ✕
+            </button>
+          }
+        </span>
+      }
+    </div>
+  }
+
+  <!-- Quick Clinical Suggestion Tags -->
+  <div class="quick-tags">
+    <span class="quick-tags-label">Quick:</span>
+    <button
+      type="button"
+      class="quick-chip"
+      (click)="setQuickSearch('forsaken feeling in the evening', ['Mind'])"
+    >
+      Forsaken (Mind)
+    </button>
+    <button
+      type="button"
+      class="quick-chip"
+      (click)="setQuickSearch('headache from exposure to sun', ['Head'])"
+    >
+      Sun headache (Head)
+    </button>
+    <button
+      type="button"
+      class="quick-chip"
+      (click)="setQuickSearch('anxiety with headache', ['Mind', 'Head'])"
+    >
+      Anxiety + Headache
+    </button>
+    <button
+      type="button"
+      class="quick-chip"
+      (click)="setQuickSearch('cough cold air', ['Cough', 'Chest', 'Respiration'])"
+    >
+      Cold cough (3 chapters)
+    </button>
+    <button
+      type="button"
+      class="quick-chip"
+      (click)="setQuickSearch('chill with thirst', ['Chill', 'Fever'])"
+    >
+      Chill & Fever
+    </button>
+  </div>
+</div>

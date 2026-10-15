@@ -1,0 +1,99 @@
+<header class="app-header">
+  <div class="header-brand">
+    <div class="brand-icon">🌿</div>
+    <div class="brand-text">
+      <h1 class="brand-title">Kent's Repertory RAG</h1>
+      <p class="brand-subtitle">Clinical Homeopathic Assistant • J.T. Kent (1,423 Pages)</p>
+    </div>
+  </div>
+
+  <div class="header-actions">
+    <!-- Live AI Backend Health Status -->
+    @if (healthStatus(); as status) {
+      <div
+        class="status-pill status-healthy"
+        title="Ollama connected with nomic-embed-text and llama3.2"
+      >
+        <span class="status-dot"></span>
+        <span class="status-text">Ollama Active</span>
+        <span class="status-divider">•</span>
+        <span class="status-model">{{ status.models.embedding }}</span>
+        <span class="status-divider">•</span>
+        <span class="status-model">{{ status.models.chat }}</span>
+      </div>
+    } @else {
+      <div class="status-pill status-offline" title="Waiting for http://localhost:3000">
+        <span class="status-dot"></span>
+        <span class="status-text">Connecting to Local API (Port 3000)...</span>
+      </div>
+    }
+
+    <!-- Theme Switcher Toggler -->
+    <button
+      type="button"
+      class="theme-toggle-btn"
+      (click)="toggleTheme()"
+      [title]="themeService.isDark() ? 'Switch to Light Theme' : 'Switch to Dark Theme'"
+      aria-label="Toggle visual theme"
+    >
+      @if (themeService.isDark()) {
+        <svg
+          class="theme-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+        <span class="theme-label">Light</span>
+      } @else {
+        <svg
+          class="theme-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+        <span class="theme-label">Dark</span>
+      }
+    </button>
+
+    <!-- Swagger Docs Link -->
+    <a
+      href="http://localhost:3000/api/docs"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="docs-link"
+      title="Open Swagger API Explorer"
+    >
+      <span>API Docs</span>
+      <svg
+        width="13"
+        height="13"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
+        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+        <polyline points="15 3 21 3 21 9"></polyline>
+        <line x1="10" y1="14" x2="21" y2="3"></line>
+      </svg>
+    </a>
+  </div>
+</header>
