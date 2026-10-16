@@ -8,23 +8,46 @@
   </div>
 
   <div class="header-actions">
+    <!-- Production vs Local Mode Toggle Switcher -->
+    <button
+      type="button"
+      class="mode-pill"
+      [class.mode-production]="api.apiMode() === 'production'"
+      [class.mode-local]="api.apiMode() === 'local'"
+      (click)="toggleApiMode()"
+      [title]="api.apiMode() === 'production' ? 'Connected to Render Cloud API. Click to switch to Local Dev.' : 'Connected to Local Dev API (Port 3000). Click to switch to Render Cloud.'"
+    >
+      @if (api.apiMode() === 'production') {
+        <span class="mode-icon">☁️</span>
+        <span class="mode-label">Cloud API</span>
+        <span class="mode-tag">Render</span>
+      } @else {
+        <span class="mode-icon">💻</span>
+        <span class="mode-label">Local API</span>
+        <span class="mode-tag">:3000</span>
+      }
+    </button>
+
     <!-- Live AI Backend Health Status -->
     @if (healthStatus(); as status) {
       <div
         class="status-pill status-healthy"
-        title="Ollama connected with nomic-embed-text and llama3.2"
+        [title]="'Backend Online • 60,570 rubrics indexed • Supabase pgvector'"
       >
         <span class="status-dot"></span>
-        <span class="status-text">Ollama Active</span>
+        <span class="status-text">Online</span>
         <span class="status-divider">•</span>
-        <span class="status-model">{{ status.models.embedding }}</span>
-        <span class="status-divider">•</span>
-        <span class="status-model">{{ status.models.chat }}</span>
+        <span class="status-model">
+          {{ status.supabase?.total_rubrics || status.dataset?.total_rubrics || 60570 | number }} rubrics
+        </span>
       </div>
     } @else {
-      <div class="status-pill status-offline" title="Waiting for http://localhost:3000">
-        <span class="status-dot"></span>
-        <span class="status-text">Connecting to Local API (Port 3000)...</span>
+      <div
+        class="status-pill status-offline"
+        [title]="'Connecting to ' + (api.apiMode() === 'production' ? 'Render Cloud' : 'http://localhost:3000')"
+      >
+        <span class="status-dot pulse"></span>
+        <span class="status-text">Connecting...</span>
       </div>
     }
 
@@ -73,15 +96,15 @@
       }
     </button>
 
-    <!-- Swagger Docs Link -->
+    <!-- Swagger Docs Link (Dynamic to Active API) -->
     <a
-      href="http://localhost:3000/api/docs"
+      [href]="api.docsUrl()"
       target="_blank"
       rel="noopener noreferrer"
       class="docs-link"
-      title="Open Swagger API Explorer"
+      title="Open Swagger API Explorer for active backend"
     >
-      <span>API Docs</span>
+      <span>Swagger Docs</span>
       <svg
         width="13"
         height="13"

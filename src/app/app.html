@@ -1,6 +1,6 @@
 <div class="app-layout">
   <!-- Top Navigation Header -->
-  <app-header [healthStatus]="healthStatus()" />
+  <app-header [healthStatus]="healthStatus()" (modeChanged)="onApiModeChanged()" />
 
   <!-- Mobile Segmented Navigation Bar (Visible only on mobile/small screens) -->
   <nav class="mobile-nav-bar" aria-label="Mobile workspace views">

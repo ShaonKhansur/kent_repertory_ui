@@ -1,6 +1,7 @@
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable, inject, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface Remedy {
   abbr: string;
@@ -56,26 +57,71 @@ export interface RepertorizeResponse {
 
 export interface HealthResponse {
   status: 'healthy' | 'unhealthy';
-  dataset: { available: boolean; total_rubrics?: number; size_mb?: number };
-  ollama: { connected: boolean; url: string; models_available: string[] };
-  models: { embedding: string; embedding_ready: boolean; chat: string; chat_ready: boolean };
-  cached_chapters: string[];
+  dataset?: { available: boolean; total_rubrics?: number; size_mb?: number };
+  embedder?: { provider?: string; model?: string; dimensions?: number; ready?: boolean };
+  supabase?: { configured?: boolean; available?: boolean; total_rubrics?: number };
+  lancedb?: { available?: boolean; total_rubrics?: number; table?: string };
+  ollama?: { connected?: boolean; url?: string; models_available?: string[] };
+  models?: { embedding?: string; embedding_ready?: boolean; chat?: string; chat_ready?: boolean };
+  cached_chapters?: string[];
+  errors?: string[];
 }
+
+export type ApiMode = 'production' | 'local';
 
 @Injectable({
   providedIn: 'root',
 })
 export class KentApiService {
   private http = inject(HttpClient);
-  private baseUrl = 'http://localhost:3000/api';
+
+  // Active API Mode: Default to production (Render Cloud API)
+  public apiMode = signal<ApiMode>(this.getInitialMode());
+
+  public baseUrl = computed<string>(() => {
+    return this.apiMode() === 'production' ? environment.apiUrl : environment.localApiUrl;
+  });
+
+  public docsUrl = computed<string>(() => {
+    return this.apiMode() === 'production' ? environment.docsUrl : environment.localDocsUrl;
+  });
 
   // State Signals
   public selectedRubrics = signal<SearchedRubric[]>([]);
   public repertorizationMatrix = signal<RepertorizeResponse | null>(null);
   public isRepertorizing = signal<boolean>(false);
 
+  private getInitialMode(): ApiMode {
+    try {
+      const saved = localStorage.getItem('kent_api_mode') as ApiMode;
+      if (saved === 'production' || saved === 'local') {
+        return saved;
+      }
+    } catch {
+      // ignore
+    }
+    return 'production';
+  }
+
+  public setApiMode(mode: ApiMode) {
+    this.apiMode.set(mode);
+    try {
+      localStorage.setItem('kent_api_mode', mode);
+    } catch {
+      // ignore
+    }
+    if (this.selectedRubrics().length > 0) {
+      this.refreshRepertorization();
+    }
+  }
+
+  public toggleApiMode() {
+    const nextMode: ApiMode = this.apiMode() === 'production' ? 'local' : 'production';
+    this.setApiMode(nextMode);
+  }
+
   checkHealth(): Observable<HealthResponse> {
-    return this.http.get<HealthResponse>(`${this.baseUrl}/health`);
+    return this.http.get<HealthResponse>(`${this.baseUrl()}/health`);
   }
 
   searchRubrics(
@@ -88,7 +134,7 @@ export class KentApiService {
       : typeof chapters === 'string'
         ? [chapters]
         : ['Mind'];
-    return this.http.post<SearchResponse>(`${this.baseUrl}/search`, {
+    return this.http.post<SearchResponse>(`${this.baseUrl()}/search`, {
       query,
       chapters: chaptersPayload,
       chapter: chaptersPayload[0] || 'Mind',
@@ -97,11 +143,11 @@ export class KentApiService {
   }
 
   getClarifyingQuestions(rubric_id: string, rubric_path?: string): Observable<ClarifyResponse> {
-    return this.http.post<ClarifyResponse>(`${this.baseUrl}/clarify`, { rubric_id, rubric_path });
+    return this.http.post<ClarifyResponse>(`${this.baseUrl()}/clarify`, { rubric_id, rubric_path });
   }
 
   repertorize(rubric_ids: string[]): Observable<RepertorizeResponse> {
-    return this.http.post<RepertorizeResponse>(`${this.baseUrl}/repertorize`, { rubric_ids });
+    return this.http.post<RepertorizeResponse>(`${this.baseUrl()}/repertorize`, { rubric_ids });
   }
 
   addRubric(rubric: SearchedRubric) {

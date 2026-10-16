@@ -49,6 +49,13 @@ export class App implements OnInit {
   public isClarifying = signal<boolean>(false);
   public healthStatus = signal<HealthResponse | null>(null);
 
+  // Track last executed search criteria
+  public lastCriteria = signal<SearchCriteria>({
+    query: 'forsaken feeling in the evening',
+    chapters: ['Mind'],
+    topK: 10,
+  });
+
   // Mobile navigation tab
   public activeMobileTab = signal<MobileTab>('search');
 
@@ -64,11 +71,7 @@ export class App implements OnInit {
   ngOnInit() {
     this.checkHealth();
     // Default initial search
-    this.executeSearch({
-      query: 'forsaken feeling in the evening',
-      chapters: ['Mind'],
-      topK: 10,
-    });
+    this.executeSearch(this.lastCriteria());
   }
 
   public checkHealth() {
@@ -78,7 +81,14 @@ export class App implements OnInit {
     });
   }
 
+  public onApiModeChanged() {
+    this.healthStatus.set(null);
+    this.checkHealth();
+    this.executeSearch(this.lastCriteria());
+  }
+
   public executeSearch(criteria: SearchCriteria) {
+    this.lastCriteria.set(criteria);
     this.isSearching.set(true);
     this.api.searchRubrics(criteria.query, criteria.chapters, criteria.topK).subscribe({
       next: (res) => {
