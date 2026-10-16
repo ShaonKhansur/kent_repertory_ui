@@ -7,6 +7,7 @@ import {
   computed,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { inject as injectAnalytics } from '@vercel/analytics';
 import {
   KentApiService,
   SearchedRubric,
@@ -41,6 +42,13 @@ export type MobileTab = 'search' | 'clarify' | 'matrix';
 })
 export class App implements OnInit {
   public api = inject(KentApiService);
+
+  constructor() {
+    // Initialize Vercel Analytics (browser-only)
+    if (typeof window !== 'undefined') {
+      injectAnalytics();
+    }
+  }
 
   // Search and clarification state
   public isSearching = signal<boolean>(false);
